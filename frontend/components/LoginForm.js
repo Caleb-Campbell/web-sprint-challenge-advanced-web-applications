@@ -45,7 +45,7 @@ export default function LoginForm(props) {
       <input
         maxLength={20} value={values.password} onChange={onChange} placeholder="Enter password" id="password"
       />
-      <button disabled={isDisabled} id="submitCredentials">Submit credentials</button>
+      <button disabled={isDisabled()} id="submitCredentials">Submit credentials</button>
     </form>
   )
 }
