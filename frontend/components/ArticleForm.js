@@ -29,6 +29,12 @@ export default function ArticleForm(props) {
   const isDisabled = () => {
     // ✨ implement
     // Make sure the inputs have some values
+    if(values === ''){
+      return true
+    }
+    else {
+      return false
+    }
   }
 
   return (
