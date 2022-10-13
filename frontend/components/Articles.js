@@ -1,39 +1,45 @@
 import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PT from 'prop-types'
-
-import { axiosWithAuth } from '../axios'
+// import { BestArticles } from './App'
 
 export default function Articles(props) {
   // ✨ where are my props? Destructure them here
-  const {articles} = props
-
-  const navigate = useNavigate()
-
-  if (!localStorage.getItem('token')){
-    navigate('/')
-  }
-
+  const { 
+    articles,
+    getArticles,
+    deleteArticle,
+    setCurrentArticleId,
+    currentArticleId,
+  } = props
   // ✨ implement conditional logic: if no token exists
   // we should render a Navigate to login screen (React Router v.6)
+  const navigate = useNavigate()
+  // const key = window.localStorage.getItem('token')
+  if (!localStorage.getItem('token')) {
+    navigate('/')
+  }
+  
 
   useEffect(() => {
     // ✨ grab the articles here, on first render only
-    
-  })
+    getArticles()
+  },[])
 
-
- 
-
+  const editArticle =(index) =>{
+    setCurrentArticleId(index)
+  }
+  
   return (
     // ✨ fix the JSX: replace `Function.prototype` with actual functions
     // and use the articles prop to generate articles
     <div className="articles">
+      {/* {key === null ? <Navigate to='/'/> : null} */}
       <h2>Articles</h2>
       {
         !articles.length
-          ? 'No articles yet'
-          : articles.map(art => {
+        ? 'No articles yet'
+        : articles.map(art => {
             return (
               <div className="article" key={art.article_id}>
                 <div>
@@ -42,8 +48,8 @@ export default function Articles(props) {
                   <p>Topic: {art.topic}</p>
                 </div>
                 <div>
-                  <button disabled={false} >Edit</button>
-                  <button disabled={false} >Delete</button>
+                  <button  onClick={()=>{editArticle(art.article_id)}}>Edit</button>
+                  <button  onClick={()=>{deleteArticle(art.article_id)}}>Delete</button>
                 </div>
               </div>
             )

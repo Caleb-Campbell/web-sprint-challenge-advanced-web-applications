@@ -1,28 +1,29 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, createContext } from 'react'
+import axios from 'axios'
 import { NavLink, Routes, Route, useNavigate } from 'react-router-dom'
 import Articles from './Articles'
 import LoginForm from './LoginForm'
 import Message from './Message'
 import ArticleForm from './ArticleForm'
 import Spinner from './Spinner'
-
-import axios from 'axios'
-import { axiosWithAuth } from '../axios'
+import {axiosWithAuth} from '../axios'
 
 const articlesUrl = 'http://localhost:9000/api/articles'
-const loginUrl = 'http://localhost:9000/api/login'
+const logon = 'http://localhost:9000/api/login'
+
 
 export default function App() {
   // ✨ MVP can be achieved with these states
   const [message, setMessage] = useState('')
   const [articles, setArticles] = useState([])
-  const [currentArticleId, setCurrentArticleId] = useState()
+  const [currentArticleId, setCurrentArticleId] = useState(null)
   const [spinnerOn, setSpinnerOn] = useState(false)
-
+  // const NewArticle = createContext({Name: 'not Me'})
+  
   // ✨ Research `useNavigate` in React Router v.6
   const navigate = useNavigate()
   const redirectToLogin = () => { navigate('/')}
-  const redirectToArticles = () => { navigate('/articles') }
+  const redirectToArticles = () => {navigate('/articles')}
 
   const logout = () => {
     // ✨ implement
@@ -30,40 +31,41 @@ export default function App() {
     // and a message saying "Goodbye!" should be set in its proper state.
     // In any case, we should redirect the browser back to the login screen,
     // using the helper above.
-    const isToken = localStorage.getItem('token')
-    if(isToken) {
-    localStorage.removeItem('token')
+    const token = localStorage.getItem('token')
+    localStorage.removeItem('token', token)
+
+    if (!token){navigate('/')} else {
+      setMessage('Goodbye!')
+      redirectToLogin()
     }
-    redirectToLogin()
-
-
   }
 
-  const login = (userCreds) => {
+  const login = (username, password) => {
     // ✨ implement
     // We should flush the message state, turn on the spinner
     // and launch a request to the proper endpoint.
     // On success, we should set the token to local storage in a 'token' key,
     // put the server success message in its proper state, and redirect
     // to the Articles screen. Don't forget to turn off the spinner!
-
+    const userCreds = {
+      username: username,
+      password: password
+    }
     setMessage('')
     setSpinnerOn(true)
-    axios.post('http://localhost:9000/api/login', userCreds)
-    .then(res => {
-      localStorage.setItem('token', res.data.token)
+    axios.post(logon, userCreds)
+    .then(res=>{
+      const token = res.data.token
+      localStorage.setItem('token', token)
       setMessage(res.data.message)
       redirectToArticles()
       setSpinnerOn(false)
-
     })
-    .catch(err => {
-      console.log({err})
-      setMessage(err.config.message)
+    .catch(err=>{
+      console.error(err)
+      setMessage('')
       setSpinnerOn(false)
     })
-    
-
   }
 
   const getArticles = () => {
@@ -77,15 +79,13 @@ export default function App() {
     // Don't forget to turn off the spinner!
     setMessage('')
     setSpinnerOn(true)
-    axiosWithAuth().get('http://localhost:9000/api/articles')
-    .then(res => {
-      // console.log(res)
+    axiosWithAuth().get(articlesUrl)
+    .then(res=>{
       setArticles(res.data.articles)
       setMessage(res.data.message)
       setSpinnerOn(false)
-    
     })
-    .catch(err => {
+    .catch(err=>{
       setMessage(err.config.message)
       setSpinnerOn(false)
     })
@@ -98,48 +98,69 @@ export default function App() {
     // to inspect the response from the server.
     setMessage('')
     setSpinnerOn(true)
-    axiosWithAuth().post("http://localhost:9000/api/articles", article)
-    .then(res => {
+    axiosWithAuth().post(articlesUrl, article)
+    .then(res=>{
       setArticles([...articles, res.data.article])
       setMessage(res.data.message)
       setSpinnerOn(false)
     })
-    .catch(err => {
-      console.error(err)
+    .catch(err=>{
       setMessage(err.config.message)
       setSpinnerOn(false)
     })
   }
 
-  const updateArticle = (article) => {
+  const updateArticle = ( article) => {
     // ✨ implement
     // You got this!
 
-    const {article_id, edits} = article
+    const { article_id, ...changes } = article
 
     setMessage('')
     setSpinnerOn(true)
-    axiosWithAuth().put(`http://localhost:9000/api/articles/${article_id}`, changes)
-    .then(res => {
+    axiosWithAuth().put(`${articlesUrl}/${article_id}`, changes)
+    .then(res=>{
       setArticles(articles.map(art => {
         return art.article_id === article_id ? res.data.article : art
       }))
       setMessage(res.data.message)
+      setSpinnerOn(false)
       setCurrentArticleId(null)
+    })
+    .catch(err=>{
+      console.error(err)
+      setMessage('')
       setSpinnerOn(false)
     })
   }
 
   const deleteArticle = article_id => {
     // ✨ implement
+    setMessage('')
+    setSpinnerOn(true)
+    axiosWithAuth().delete(`${articlesUrl}/${article_id}`)
+    .then(res=>{
+      setSpinnerOn(false)
+      setMessage(res.data.message)
+      setArticles(articles.filter(art=>{
+        return art.article_id !== article_id
+      }))
+    })
+    .catch(err=>{
+      console.error(err)
+      setMessage('')
+      setSpinnerOn(false)
+    })
   }
 
   return (
     // ✨ fix the JSX: `Spinner`, `Message`, `LoginForm`, `ArticleForm` and `Articles` expect props ❗
-    <>
-      <Spinner />
-      <Message message={message} />
-      <button id="logout" onClick={logout}>Logout from app</button>
+    // When passing in props Do not Invoke them! they just need the name of function
+    <React.StrictMode>
+      {/* <NewArticle.Provider value={articles}> */}
+      <Spinner on={spinnerOn}/>
+      <Message message={message}/>
+      <button id="logout" onClick={()=>{logout()}}>Logout from app</button>
       <div id="wrapper" style={{ opacity: spinnerOn ? "0.25" : "1" }}> {/* <-- do not change this line */}
         <h1>Advanced Web Applications</h1>
         <nav>
@@ -147,16 +168,32 @@ export default function App() {
           <NavLink id="articlesScreen" to="/articles">Articles</NavLink>
         </nav>
         <Routes>
-          <Route path="/" element={<LoginForm login={login} />} />
+          <Route path="/" element={<LoginForm login={login}/>} />
           <Route path="articles" element={
             <>
-              <ArticleForm />
-              <Articles articles={articles} />
+              <ArticleForm
+                postArticle={postArticle}
+                updateArticle={updateArticle}
+                setCurrentArticleId={setCurrentArticleId}
+                currentArticle={articles.find(art => art.article_id === currentArticleId)}
+                number={currentArticleId}
+                // bestArticles={articles.find(art => art.article_id === currentArticleId)}
+                />
+                {/* <NewArticle.Provider value={articles}> */}
+              <Articles
+                articles={articles}
+                getArticles={getArticles}
+                deleteArticle={deleteArticle}
+                setCurrentArticleId={setCurrentArticleId}
+                currentArticle={currentArticleId}
+                />
+                {/* </NewArticle.Provider> */}
             </>
           } />
         </Routes>
         <footer>Bloom Institute of Technology 2022</footer>
       </div>
-    </>
+      {/* </NewArticle.Provider> */}
+    </React.StrictMode>
   )
 }
